@@ -5,9 +5,11 @@
  */
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Scanner;
-
+import java.util.Arrays;
 public class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -16,7 +18,8 @@ public class Main {
         kullanicilar.put("123", new Kullanici("123", "pass1", "Emrecan", "Kadirdag", "TR055", new Hesap(2400)));
         kullanicilar.put("456", new Kullanici("456", "pass2", "Kadir", "Kaya", "TR059", new Hesap(5000)));
         kullanicilar.put("789", new Kullanici("789", "pass3", "Mehmet", "Aydin", "TR001", new Hesap(17000)));
-        System.out.println("=== YALOVA EKONOMI BANKASI ===");
+
+        TerminalBox.printBoxedMessage("=== YALOVA EKONOMI BANKASI ===");
 
         Kullanici kullanici = null;
         while (true) {
@@ -26,12 +29,9 @@ public class Main {
             String sifre = scanner.nextLine();
 
             kullanici = kullanicilar.get(id);
-
-            if (kullanici != null && kullanici.getSifre().equals(sifre)) {
-                System.out.println("\nGiris Basarili!\n");
+            if (kullanici != null && kullanici.sifreDogrula(sifre)) {
+                TerminalBox.printBoxedMessage("Giriş Başarılı!");
                 break;
-            } else {
-                System.out.println("Hatalı giriş! Tekrar deneyin.");
             }
         }
 
@@ -39,36 +39,61 @@ public class Main {
     }
 
     private static void menuGoster(Scanner scanner, Kullanici kullanici, Map<String, Kullanici> kullanicilar) {
-        while (true){    //sonsuz donguye almak icin true aldık
-            System.out.println("\n--- Menü ---");
-            System.out.println("1. Hesap Bilgileri");
-            System.out.println("2. Para Transferi");
-            System.out.println("3. Çıkış");
-            System.out.print("Seçiminiz (1-3): ");
-            int secim = scanner.nextInt(); //kullanıcıdan aldıgımız degeri secime atadık
+        while (true) {
+            TerminalBox.printBoxedMessage(
+                    "--- Menü ---",
+                    "1. Hesap Bilgileri",
+                    "2. Para Transferi",
+                    "3. Döviz İşlemleri",
+                    "4. Para Yatır",
+                    "5. Çıkış",
+                    "Seçiminiz (1-5): "
+            );
+
+            int secim = scanner.nextInt();
             scanner.nextLine();
 
             switch (secim) {
-                case 1:
-                    hesapBilgileriniGoster(kullanici);
-                    break;
-                case 2:
-                    paraTransferiYap(scanner, kullanici, kullanicilar);
-                    break;
-                case 3:
-                    System.out.println("Çıkış yapılıyor...");
+                case 1: hesapBilgileriniGoster(kullanici); break;
+                case 2: paraTransferiYap(scanner, kullanici, kullanicilar); break;
+                case 3: dovizIslemleriYap(scanner, kullanici); break;
+                case 4: paraYatirIslemi(scanner, kullanici); break;
+                case 5:
+                    TerminalBox.printBoxedMessage("Çıkış yapılıyor...");
                     return;
                 default:
-                    System.out.println("Geçersiz seçim!");
+                    TerminalBox.printBoxedMessage("Geçersiz seçim!");
             }
         }
     }
 
+    private static void paraYatirIslemi(Scanner scanner, Kullanici kullanici) {
+        TerminalBox.printBoxedMessage(
+                "--- Para Yatırma ---",
+                "Mevcut Bakiye: " + kullanici.getHesap().getBakiye() + " TL"
+        );
+        System.out.print("Yatırmak istediğiniz miktar: ");
+        double miktar = scanner.nextDouble();
+
+        if (miktar > 0) {
+            kullanici.getHesap().paraYatir(miktar);
+            TerminalBox.printBoxedMessage(
+                    "Para yatırma işlemi başarılı!",
+                    "Yeni bakiyeniz: " + kullanici.getHesap().getBakiye() + " TL"
+            );
+        } else {
+            TerminalBox.printBoxedMessage("Geçersiz miktar!");
+        }
+    }
+
     private static void hesapBilgileriniGoster(Kullanici kullanici) {
-        System.out.println("\n--- Hesap Bilgileri ---");
-        System.out.println("Ad Soyad: " + kullanici.getAd() + " " + kullanici.getSoyad());
-        System.out.println("IBAN: " + kullanici.getIban());
-        System.out.println("Bakiye: " + kullanici.getHesap().getBakiye() + " TL");
+        TerminalBox.printBoxedMessage(
+                "--- Hesap Bilgileri ---",
+                "Ad Soyad: " + kullanici.getAd() + " " + kullanici.getSoyad(),
+                "IBAN: " + kullanici.getIban(),
+                "Bakiye: " + kullanici.getHesap().getBakiye() + " TL"
+        );
+        kullanici.getDovizPozisyonu().bakiyeleriGoster();
     }
 
     private static void paraTransferiYap(Scanner scanner, Kullanici gonderen, Map<String, Kullanici> kullanicilar) {
@@ -84,7 +109,7 @@ public class Main {
         }
 
         if (alici == null) {
-            System.out.println("IBAN bulunamadı!");
+            TerminalBox.printBoxedMessage("IBAN bulunamadı!");
             return;
         }
 
@@ -92,14 +117,83 @@ public class Main {
         double tutar = scanner.nextDouble();
 
         if (tutar <= 0 || tutar > gonderen.getHesap().getBakiye()) {
-            System.out.println("Geçersiz tutar veya yetersiz bakiye!");
+            TerminalBox.printBoxedMessage("Geçersiz tutar veya yetersiz bakiye!");
             return;
         }
 
         gonderen.getHesap().setBakiye(gonderen.getHesap().getBakiye() - tutar);
         alici.getHesap().setBakiye(alici.getHesap().getBakiye() + tutar);
 
-        System.out.println("Transfer başarılı!");
-        System.out.println("Yeni bakiyeniz: " + gonderen.getHesap().getBakiye() + " TL");
+        TerminalBox.printBoxedMessage(
+                "Transfer başarılı!",
+                "Yeni bakiyeniz: " + gonderen.getHesap().getBakiye() + " TL"
+        );
+    }
+
+    private static void dovizIslemleriYap(Scanner scanner, Kullanici kullanici) {
+        TerminalBox.printBoxedMessage(
+                "--- Döviz İşlemleri ---",
+                "1. Döviz Al",
+                "2. Döviz Sat",
+                "3. Bakiyeleri Görüntüle",
+                "4. İşlem Geçmişi"
+        );
+        System.out.print("Seçiminiz (1-4): ");
+
+        int secim = scanner.nextInt();
+        scanner.nextLine();
+
+        switch (secim) {
+            case 1:
+                dovizAlimIslemleri(scanner, kullanici);
+                break;
+            case 2:
+                dovizSatisIslemleri(scanner, kullanici);
+                break;
+            case 3:
+                kullanici.getDovizPozisyonu().bakiyeleriGoster();
+                break;
+            case 4:
+                kullanici.getDovizPozisyonu().islemGecmisiniGoster();
+                break;
+        }
+    }
+
+    private static void dovizAlimIslemleri(Scanner scanner, Kullanici kullanici) {
+        TerminalBox.printBoxedMessage("Mevcut Kurlar:");
+        kullanici.getDovizPozisyonu().getKurlar().forEach((cift, kur) ->
+                System.out.printf("%s: %.2f\n", cift, kur));
+
+        System.out.print("\nDöviz çifti seçin (TRY-USD/TRY-EUR/TRY-GBP): ");
+        String dovizCifti = scanner.nextLine();
+        System.out.print("TRY miktar: ");
+        double tryMiktar = scanner.nextDouble();
+
+        if (tryMiktar <= kullanici.getHesap().getBakiye()) {
+            if (kullanici.getDovizPozisyonu().dovizAl(dovizCifti, tryMiktar)) {
+                kullanici.getHesap().setBakiye(kullanici.getHesap().getBakiye() - tryMiktar);
+                TerminalBox.printBoxedMessage("Döviz alımı başarılı!");
+            } else {
+                TerminalBox.printBoxedMessage("Geçersiz döviz çifti!");
+            }
+        } else {
+            TerminalBox.printBoxedMessage("Yetersiz bakiye!");
+        }
+    }
+
+    private static void dovizSatisIslemleri(Scanner scanner, Kullanici kullanici) {
+        kullanici.getDovizPozisyonu().bakiyeleriGoster();
+        System.out.print("\nDöviz çifti seçin (TRY-USD/TRY-EUR/TRY-GBP): ");
+        String dovizCifti = scanner.nextLine();
+        System.out.print("Döviz miktar: ");
+        double dovizMiktar = scanner.nextDouble();
+
+        if (kullanici.getDovizPozisyonu().dovizSat(dovizCifti, dovizMiktar)) {
+            double tryKazanc = dovizMiktar * kullanici.getDovizPozisyonu().getKurlar().get(dovizCifti);
+            kullanici.getHesap().setBakiye(kullanici.getHesap().getBakiye() + tryKazanc);
+            TerminalBox.printBoxedMessage("Döviz satışı başarılı!");
+        } else {
+            TerminalBox.printBoxedMessage("Yetersiz döviz bakiyesi!");
+        }
     }
 }
